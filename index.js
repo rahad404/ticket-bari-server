@@ -115,7 +115,18 @@ async function run() {
          }
       });
 
-      
+      // get a user's role + fraud flag (used for route protection / dashboard redirect)
+      app.get("/users/role/:email", verifyToken, async (req, res) => {
+         try {
+            const { email } = req.params;
+            const user = await userCollection.findOne({ email }, { projection: { role: 1, isFraud: 1 } });
+            if (!user) return res.status(404).json({ message: "User not found." });
+            res.status(200).json({ role: user.role || "user", isFraud: user.isFraud || false });
+         } catch (error) {
+            console.error("Error fetching user role:", error);
+            res.status(500).json({ message: "Failed to fetch user role." });
+         }
+      });
 
 
 

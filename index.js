@@ -351,6 +351,18 @@ async function run() {
          }
       });
 
+      // vendor: tickets added by a specific vendor ("My Added Tickets")
+      app.get("/tickets/vendor/:email", verifyToken, verifyVendor, async (req, res) => {
+         try {
+            const { email } = req.params;
+            const tickets = await ticketCollection.find({ vendorEmail: email }).sort({ createdAt: -1 }).toArray();
+            res.status(200).json(tickets);
+         } catch (error) {
+            console.error("Error fetching vendor tickets:", error);
+            res.status(500).json({ message: "Failed to fetch your tickets." });
+         }
+      });
+
 
 
 

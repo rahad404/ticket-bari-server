@@ -4,7 +4,7 @@ const express = require("express");
 const cors = require("cors");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const { createRemoteJWKSet, jwtVerify } = require("jose-cjs");
-const Stripe = require("stripe");
+// const Stripe = require("stripe");
 
 const app = express();
 
@@ -15,7 +15,7 @@ app.use(express.urlencoded({ extended: false }));
 
 const port = process.env.PORT || 5000;
 const uri = process.env.MONGODB_URI;
-const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
+// const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 
 const client = new MongoClient(uri, {
    serverApi: {
@@ -101,15 +101,29 @@ async function run() {
          res.send("TicketBari server is running!");
       });
 
+      // USER ROUTES
+      // ===================================================================
 
-
-
-
-
-
-
+      // get all users (admin - Manage Users page)
+      app.get("/users", verifyToken, verifyAdmin, async (req, res) => {
+         try {
+            const users = await userCollection.find().sort({ createdAt: -1 }).toArray();
+            res.status(200).json(users);
+         } catch (error) {
+            console.error("Error fetching users:", error);
+            res.status(500).json({ message: "Failed to fetch users." });
+         }
+      });
 
       
+
+
+
+
+
+
+
+
       // ===================================================================
       // FALLBACK HANDLERS
       // ===================================================================

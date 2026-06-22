@@ -141,6 +141,22 @@ async function run() {
          }
       });
 
+      // promote a user to admin
+      app.patch("/users/admin/:id", verifyToken, verifyAdmin, async (req, res) => {
+         try {
+            const { id } = req.params;
+            if (!ObjectId.isValid(id)) return res.status(400).json({ message: "Invalid User ID" });
+
+            const result = await userCollection.updateOne({ _id: new ObjectId(id) }, { $set: { role: "admin" } });
+            if (result.matchedCount === 0) return res.status(404).json({ message: "User not found." });
+
+            res.status(200).json({ success: true, message: "User promoted to admin." });
+         } catch (error) {
+            console.error("Error making admin:", error);
+            res.status(500).json({ message: "Failed to update user role." });
+         }
+      });
+
 
 
 

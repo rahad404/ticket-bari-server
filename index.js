@@ -379,6 +379,29 @@ async function run() {
          }
       });
 
+      // admin: approve / reject a ticket
+      app.patch("/tickets/verify/:id", verifyToken, verifyAdmin, async (req, res) => {
+         try {
+            const { id } = req.params;
+            const { verificationStatus } = req.body;
+            if (!ObjectId.isValid(id)) return res.status(400).json({ message: "Invalid Ticket ID" });
+            if (!["approved", "rejected"].includes(verificationStatus)) {
+               return res.status(400).json({ message: "Invalid verification status." });
+            }
+
+            const result = await ticketCollection.updateOne(
+               { _id: new ObjectId(id) },
+               { $set: { verificationStatus } }
+            );
+            if (result.matchedCount === 0) return res.status(404).json({ message: "Ticket not found." });
+
+            res.status(200).json({ success: true, message: `Ticket ${verificationStatus} successfully.` });
+         } catch (error) {
+            console.error("Error verifying ticket:", error);
+            res.status(500).json({ message: "Failed to update verification status." });
+         }
+      });
+
 
 
 

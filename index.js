@@ -640,6 +640,87 @@ async function run() {
          }
       });
 
+      // PAYMENT ROUTES (Stripe)
+      // ===================================================================
+
+      // create a Stripe payment intent for an accepted booking
+      app.post("/create-payment-intent", verifyToken, async (req, res) => {
+         try {
+            const { bookingId } = req.body;
+            if (!ObjectId.isValid(bookingId)) return res.status(400).json({ message: "Invalid Booking ID" });
+
+            const booking = await bookingCollection.findOne({ _id: new ObjectId(bookingId) });
+            if (!booking) return res.status(404).json({ message: "Booking not found." });
+            if (booking.status !== "accepted") {
+               return res.status(400).json({ message: "This booking is not approved for payment yet." });
+            }
+
+            const departure = new Date(booking.departureDateTime);
+            if (departure < new Date()) {
+               return res.status(400).json({ message: "Departure date and time has already passed." });
+            }
+
+            const amount = Math.round(Number(booking.totalPrice) * 100); // smallest currency unit
+
+            const paymentIntent = await stripe.paymentIntents.create({
+               amount,
+               currency: "usd", // change as needed for your Stripe account
+               payment_method_types: ["card"],
+            });
+
+            res.status(200).json({ clientSecret: paymentIntent.client_secret });
+         } catch (error) {
+            console.error("Error creating payment intent:", error);
+            res.status(500).json({ message: "Failed to create payment intent." });
+         }
+      });
+
+      // save a successful payment, mark booking as paid, reduce ticket quantity
+      app.post("/payments", verifyToken, async (req, res) => {
+         try {
+            const { bookingId, transactionId, amount, email } = req.body;
+            if (!ObjectId.isValid(bookingId)) return res.status(400).json({ message: "Invalid Booking ID" });
+
+            const booking = await bookingCollection.findOne({ _id: new ObjectId(bookingId) });
+            if (!booking) return res.status(404).json({ message: "Booking not found." });
+
+            const paymentRecord = {
+               transactionId,
+               bookingId: new ObjectId(bookingId),
+               ticketId: booking.ticketId,
+               ticketTitle: booking.ticketTitle,
+               amount: Number(amount),
+               email,
+               paymentDate: new Date(),
+            };
+
+            await paymentCollection.insertOne(paymentRecord);
+
+            await bookingCollection.updateOne({ _id: new ObjectId(bookingId) }, { $set: { status: "paid" } });
+
+            await ticketCollection.updateOne(
+               { _id: booking.ticketId },
+               { $inc: { quantity: -Number(booking.bookingQuantity) } }
+            );
+
+            res.status(201).json({ success: true, message: "Payment recorded successfully." });
+         } catch (error) {
+            console.error("Error saving payment:", error);
+            res.status(500).json({ message: "Failed to save payment." });
+         }
+      });
+
+      // user: transaction history table
+      app.get("/payments/:email", verifyToken, async (req, res) => {
+         try {
+            const { email } = req.params;
+            const payments = await paymentCollection.find({ email }).sort({ paymentDate: -1 }).toArray();
+            res.status(200).json(payments);
+         } catch (error) {
+            console.error("Error fetching payments:", error);
+            res.status(500).json({ message: "Failed to fetch transaction history." });
+         }
+      });
 
 
 

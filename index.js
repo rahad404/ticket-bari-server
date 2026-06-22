@@ -566,6 +566,23 @@ async function run() {
          }
       });
 
+      // single booking (used on the payment page to calculate amount)
+      app.get("/bookings/:id", verifyToken, async (req, res) => {
+         try {
+            const { id } = req.params;
+            if (!ObjectId.isValid(id)) return res.status(400).json({ message: "Invalid Booking ID" });
+
+            const booking = await bookingCollection.findOne({ _id: new ObjectId(id) });
+            if (!booking) return res.status(404).json({ message: "Booking not found." });
+
+            res.status(200).json(booking);
+         } catch (error) {
+            console.error("Error fetching booking:", error);
+            res.status(500).json({ message: "Failed to fetch booking." });
+         }
+      });
+
+
 
 
 

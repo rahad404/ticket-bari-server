@@ -295,7 +295,32 @@ async function run() {
          }
       });
 
+      // public: total count for the same filters above (used for pagination controls)
+      app.get("/tickets-count", async (req, res) => {
+         try {
+            const { search, from, to, transportType } = req.query;
+            const query = { verificationStatus: "approved", isHidden: { $ne: true } };
 
+            if (from?.trim()) query.from = { $regex: from.trim(), $options: "i" };
+            if (to?.trim()) query.to = { $regex: to.trim(), $options: "i" };
+            if (search?.trim()) {
+               query.$or = [
+                  { from: { $regex: search.trim(), $options: "i" } },
+                  { to: { $regex: search.trim(), $options: "i" } },
+                  { title: { $regex: search.trim(), $options: "i" } },
+               ];
+            }
+            if (transportType?.trim() && transportType !== "all") {
+               query.transportType = transportType;
+            }
+
+            const count = await ticketCollection.countDocuments(query);
+            res.status(200).json({ count });
+         } catch (error) {
+            console.error("Error counting tickets:", error);
+            res.status(500).json({ message: "Failed to count tickets." });
+         }
+      });
 
 
 

@@ -432,6 +432,34 @@ async function run() {
          }
       });
 
+      // vendor: update own ticket (blocked if rejected)
+      app.patch("/tickets/:id", verifyToken, verifyVendor, async (req, res) => {
+         try {
+            const { id } = req.params;
+            if (!ObjectId.isValid(id)) return res.status(400).json({ message: "Invalid Ticket ID" });
+
+            const ticket = await ticketCollection.findOne({ _id: new ObjectId(id) });
+            if (!ticket) return res.status(404).json({ message: "Ticket not found." });
+            if (ticket.vendorEmail !== req.user.email) return res.status(403).json({ message: "forbidden access" });
+            if (ticket.verificationStatus === "rejected") {
+               return res.status(400).json({ message: "Rejected tickets cannot be updated." });
+            }
+
+            const updates = req.body;
+            delete updates._id;
+            delete updates.verificationStatus; // vendor cannot self-approve
+            delete updates.isAdvertised; // vendor cannot self-advertise
+            if (updates.price !== undefined) updates.price = Number(updates.price);
+            if (updates.quantity !== undefined) updates.quantity = Number(updates.quantity);
+
+            await ticketCollection.updateOne({ _id: new ObjectId(id) }, { $set: updates });
+            res.status(200).json({ success: true, message: "Ticket updated successfully." });
+         } catch (error) {
+            console.error("Error updating ticket:", error);
+            res.status(500).json({ message: "Failed to update ticket." });
+         }
+      });
+
 
 
 

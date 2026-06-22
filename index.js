@@ -402,6 +402,36 @@ async function run() {
          }
       });
 
+      // admin: toggle advertise on/off (max 6 advertised tickets at a time)
+      app.patch("/tickets/advertise/:id", verifyToken, verifyAdmin, async (req, res) => {
+         try {
+            const { id } = req.params;
+            const { isAdvertised } = req.body;
+            if (!ObjectId.isValid(id)) return res.status(400).json({ message: "Invalid Ticket ID" });
+
+            if (isAdvertised) {
+               const currentCount = await ticketCollection.countDocuments({ isAdvertised: true });
+               if (currentCount >= 6) {
+                  return res.status(400).json({ message: "Cannot advertise more than 6 tickets at a time." });
+               }
+            }
+
+            const result = await ticketCollection.updateOne(
+               { _id: new ObjectId(id) },
+               { $set: { isAdvertised: !!isAdvertised } }
+            );
+            if (result.matchedCount === 0) return res.status(404).json({ message: "Ticket not found." });
+
+            res.status(200).json({
+               success: true,
+               message: `Ticket ${isAdvertised ? "advertised" : "unadvertised"} successfully.`,
+            });
+         } catch (error) {
+            console.error("Error updating advertise status:", error);
+            res.status(500).json({ message: "Failed to update advertise status." });
+         }
+      });
+
 
 
 

@@ -197,6 +197,35 @@ async function run() {
          }
       });
 
+      // update own profile (name, image)
+      app.patch("/users/:id", verifyToken, async (req, res) => {
+         try {
+            const id = req.params.id;
+            if (!ObjectId.isValid(id)) return res.status(400).json({ message: "Invalid user ID" });
+
+            const targetUser = await userCollection.findOne({ _id: new ObjectId(id) });
+            if (!targetUser) return res.status(404).json({ message: "User not found" });
+            if (targetUser.email !== req.user.email) {
+               return res.status(403).json({ message: "forbidden access" });
+            }
+
+            const { name, image } = req.body;
+            const fields = {};
+            if (name !== undefined && name !== "") fields.name = name;
+            if (image !== undefined && image !== "") fields.image = image;
+
+            if (Object.keys(fields).length === 0) {
+               return res.status(400).json({ message: "No valid fields provided to update" });
+            }
+
+            const result = await userCollection.updateOne({ _id: new ObjectId(id) }, { $set: fields });
+            res.status(200).json({ success: true, message: "Profile updated successfully", result });
+         } catch (error) {
+            console.error("Error updating user:", error);
+            res.status(500).json({ message: "Server error" });
+         }
+      });
+
 
 
 

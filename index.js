@@ -620,6 +620,26 @@ async function run() {
          }
       });
 
+      // user: cancel a booking (optional feature - only allowed before vendor accepts)
+      app.delete("/bookings/:id", verifyToken, async (req, res) => {
+         try {
+            const { id } = req.params;
+            if (!ObjectId.isValid(id)) return res.status(400).json({ message: "Invalid Booking ID" });
+
+            const booking = await bookingCollection.findOne({ _id: new ObjectId(id) });
+            if (!booking) return res.status(404).json({ message: "Booking not found." });
+            if (booking.status !== "pending") {
+               return res.status(400).json({ message: "Only pending bookings can be cancelled." });
+            }
+
+            await bookingCollection.deleteOne({ _id: new ObjectId(id) });
+            res.status(200).json({ success: true, message: "Booking cancelled successfully." });
+         } catch (error) {
+            console.error("Error cancelling booking:", error);
+            res.status(500).json({ message: "Failed to cancel booking." });
+         }
+      });
+
 
 
 

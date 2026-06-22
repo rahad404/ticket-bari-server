@@ -554,6 +554,18 @@ async function run() {
          }
       });
 
+      // vendor: booking requests for their tickets ("Requested Bookings")
+      app.get("/bookings/vendor/:email", verifyToken, verifyVendor, async (req, res) => {
+         try {
+            const { email } = req.params;
+            const bookings = await bookingCollection.find({ vendorEmail: email }).sort({ createdAt: -1 }).toArray();
+            res.status(200).json(bookings);
+         } catch (error) {
+            console.error("Error fetching vendor bookings:", error);
+            res.status(500).json({ message: "Failed to fetch booking requests." });
+         }
+      });
+
 
 
 

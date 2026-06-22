@@ -601,6 +601,25 @@ async function run() {
          }
       });
 
+      // vendor: reject a booking request
+      app.patch("/bookings/reject/:id", verifyToken, verifyVendor, async (req, res) => {
+         try {
+            const { id } = req.params;
+            if (!ObjectId.isValid(id)) return res.status(400).json({ message: "Invalid Booking ID" });
+
+            const result = await bookingCollection.updateOne(
+               { _id: new ObjectId(id), vendorEmail: req.user.email },
+               { $set: { status: "rejected" } }
+            );
+            if (result.matchedCount === 0) return res.status(404).json({ message: "Booking not found." });
+
+            res.status(200).json({ success: true, message: "Booking rejected successfully." });
+         } catch (error) {
+            console.error("Error rejecting booking:", error);
+            res.status(500).json({ message: "Failed to reject booking." });
+         }
+      });
+
 
 
 

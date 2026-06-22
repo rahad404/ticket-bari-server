@@ -363,6 +363,21 @@ async function run() {
          }
       });
 
+      // protected: single ticket details (Ticket Details page)
+      app.get("/tickets/:id", verifyToken, async (req, res) => {
+         try {
+            const { id } = req.params;
+            if (!ObjectId.isValid(id)) return res.status(400).json({ message: "Invalid Ticket ID" });
+
+            const ticket = await ticketCollection.findOne({ _id: new ObjectId(id) });
+            if (!ticket) return res.status(404).json({ message: "Ticket not found." });
+
+            res.status(200).json(ticket);
+         } catch (error) {
+            console.error("Error fetching ticket:", error);
+            res.status(500).json({ message: "Failed to fetch ticket details." });
+         }
+      });
 
 
 

@@ -227,7 +227,7 @@ async function run() {
       });
 
 
-      
+
       // TICKET ROUTES
       // ===================================================================
 
@@ -251,6 +251,47 @@ async function run() {
          } catch (error) {
             console.error("Error adding ticket:", error);
             res.status(500).json({ message: "Failed to add ticket." });
+         }
+      });
+
+      // public: approved, non-hidden tickets with search / filter / sort / pagination ("All Tickets" page)
+      app.get("/tickets", async (req, res) => {
+         try {
+            const { search, from, to, transportType, sort, page = 1, limit = 9 } = req.query;
+            const query = { verificationStatus: "approved", isHidden: { $ne: true } };
+
+            if (from?.trim()) query.from = { $regex: from.trim(), $options: "i" };
+            if (to?.trim()) query.to = { $regex: to.trim(), $options: "i" };
+            if (search?.trim()) {
+               query.$or = [
+                  { from: { $regex: search.trim(), $options: "i" } },
+                  { to: { $regex: search.trim(), $options: "i" } },
+                  { title: { $regex: search.trim(), $options: "i" } },
+               ];
+            }
+            if (transportType?.trim() && transportType !== "all") {
+               query.transportType = transportType;
+            }
+
+            let sortQuery = { createdAt: -1 };
+            if (sort === "price_asc") sortQuery = { price: 1 };
+            if (sort === "price_desc") sortQuery = { price: -1 };
+
+            const pageNum = Number(page) || 1;
+            const limitNum = Number(limit) || 9;
+            const skip = (pageNum - 1) * limitNum;
+
+            const tickets = await ticketCollection
+               .find(query)
+               .sort(sortQuery)
+               .skip(skip)
+               .limit(limitNum)
+               .toArray();
+
+            res.status(200).json(tickets);
+         } catch (error) {
+            console.error("Error fetching tickets:", error);
+            res.status(500).json({ message: "Failed to fetch tickets." });
          }
       });
 

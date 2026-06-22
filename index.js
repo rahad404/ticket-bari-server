@@ -542,6 +542,18 @@ async function run() {
          }
       });
 
+      // user: own booked tickets ("My Booked Tickets")
+      app.get("/bookings/user/:email", verifyToken, async (req, res) => {
+         try {
+            const { email } = req.params;
+            const bookings = await bookingCollection.find({ userEmail: email }).sort({ createdAt: -1 }).toArray();
+            res.status(200).json(bookings);
+         } catch (error) {
+            console.error("Error fetching user bookings:", error);
+            res.status(500).json({ message: "Failed to fetch bookings." });
+         }
+      });
+
 
 
 

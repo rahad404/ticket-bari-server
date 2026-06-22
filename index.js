@@ -337,6 +337,20 @@ async function run() {
          }
       });
 
+      // public: admin-advertised tickets, max 6 (Home page advertisement section)
+      app.get("/tickets/advertised", async (req, res) => {
+         try {
+            const tickets = await ticketCollection
+               .find({ isAdvertised: true, verificationStatus: "approved", isHidden: { $ne: true } })
+               .limit(6)
+               .toArray();
+            res.status(200).json(tickets);
+         } catch (error) {
+            console.error("Error fetching advertised tickets:", error);
+            res.status(500).json({ message: "Failed to fetch advertised tickets." });
+         }
+      });
+
 
 
 

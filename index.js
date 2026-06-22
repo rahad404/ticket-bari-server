@@ -322,6 +322,21 @@ async function run() {
          }
       });
 
+      // public: latest 6-8 approved tickets (Home page)
+      app.get("/tickets/latest", async (req, res) => {
+         try {
+            const tickets = await ticketCollection
+               .find({ verificationStatus: "approved", isHidden: { $ne: true } })
+               .sort({ createdAt: -1 })
+               .limit(8)
+               .toArray();
+            res.status(200).json(tickets);
+         } catch (error) {
+            console.error("Error fetching latest tickets:", error);
+            res.status(500).json({ message: "Failed to fetch latest tickets." });
+         }
+      });
+
 
 
 

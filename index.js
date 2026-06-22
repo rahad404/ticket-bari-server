@@ -128,6 +128,19 @@ async function run() {
          }
       });
 
+      // get a single user's full profile
+      app.get("/users/:email", verifyToken, async (req, res) => {
+         try {
+            const { email } = req.params;
+            const user = await userCollection.findOne({ email });
+            if (!user) return res.status(404).json({ message: "User not found." });
+            res.status(200).json(user);
+         } catch (error) {
+            console.error("Error fetching user:", error);
+            res.status(500).json({ message: "Failed to fetch user." });
+         }
+      });
+
 
 
 

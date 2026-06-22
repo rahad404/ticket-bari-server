@@ -722,6 +722,38 @@ async function run() {
          }
       });
 
+      // VENDOR REVENUE OVERVIEW
+      // ===================================================================
+
+      app.get("/vendor-stats/:email", verifyToken, verifyVendor, async (req, res) => {
+         try {
+            const { email } = req.params;
+
+            const totalTicketsAdded = await ticketCollection.countDocuments({ vendorEmail: email });
+
+            const soldStats = await bookingCollection
+               .aggregate([
+                  { $match: { vendorEmail: email, status: "paid" } },
+                  {
+                     $group: {
+                        _id: null,
+                        totalTicketsSold: { $sum: "$bookingQuantity" },
+                        totalRevenue: { $sum: "$totalPrice" },
+                     },
+                  },
+               ])
+               .toArray();
+
+            const totalTicketsSold = soldStats[0]?.totalTicketsSold || 0;
+            const totalRevenue = soldStats[0]?.totalRevenue || 0;
+
+            res.status(200).json({ totalTicketsAdded, totalTicketsSold, totalRevenue });
+         } catch (error) {
+            console.error("Error fetching vendor stats:", error);
+            res.status(500).json({ message: "Failed to fetch vendor stats." });
+         }
+      });
+
 
 
 

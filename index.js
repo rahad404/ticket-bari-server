@@ -173,6 +173,30 @@ async function run() {
          }
       });
 
+      // mark a vendor as fraud -> hides all of their tickets + blocks future ticket adds
+      app.patch("/users/fraud/:id", verifyToken, verifyAdmin, async (req, res) => {
+         try {
+            const { id } = req.params;
+            if (!ObjectId.isValid(id)) return res.status(400).json({ message: "Invalid User ID" });
+
+            const targetUser = await userCollection.findOne({ _id: new ObjectId(id) });
+            if (!targetUser) return res.status(404).json({ message: "User not found." });
+            if (targetUser.role !== "vendor") {
+               return res.status(400).json({ message: "Only vendors can be marked as fraud." });
+            }
+
+            await userCollection.updateOne({ _id: new ObjectId(id) }, { $set: { isFraud: true } });
+
+            // hide all tickets belonging to this vendor from public listings
+            await ticketCollection.updateMany({ vendorEmail: targetUser.email }, { $set: { isHidden: true } });
+
+            res.status(200).json({ success: true, message: "Vendor marked as fraud and their tickets are now hidden." });
+         } catch (error) {
+            console.error("Error marking fraud:", error);
+            res.status(500).json({ message: "Failed to mark vendor as fraud." });
+         }
+      });
+
 
 
 

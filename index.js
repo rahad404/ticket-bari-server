@@ -227,6 +227,34 @@ async function run() {
       });
 
 
+      
+      // TICKET ROUTES
+      // ===================================================================
+
+      // vendor adds a new ticket (verification status starts as "pending")
+      app.post("/tickets", verifyToken, verifyVendor, async (req, res) => {
+         try {
+            const ticketData = req.body;
+
+            const newTicket = {
+               ...ticketData,
+               price: Number(ticketData.price),
+               quantity: Number(ticketData.quantity),
+               verificationStatus: "pending",
+               isAdvertised: false,
+               isHidden: false,
+               createdAt: new Date(),
+            };
+
+            const result = await ticketCollection.insertOne(newTicket);
+            res.status(201).json({ success: true, message: "Ticket submitted for review.", ticketId: result.insertedId });
+         } catch (error) {
+            console.error("Error adding ticket:", error);
+            res.status(500).json({ message: "Failed to add ticket." });
+         }
+      });
+
+
 
 
 

@@ -481,6 +481,67 @@ async function run() {
          }
       });
 
+      // BOOKING ROUTES
+      // ===================================================================
+
+      // user books a ticket (status starts as "pending")
+      app.post("/bookings", verifyToken, async (req, res) => {
+         try {
+            const { ticketId, bookingQuantity, userEmail, userName } = req.body;
+            if (!ObjectId.isValid(ticketId)) return res.status(400).json({ message: "Invalid Ticket ID" });
+
+            const ticket = await ticketCollection.findOne({ _id: new ObjectId(ticketId) });
+            if (!ticket) return res.status(404).json({ message: "Ticket not found." });
+
+            if (ticket.verificationStatus !== "approved" || ticket.isHidden) {
+               return res.status(400).json({ message: "This ticket is not available for booking." });
+            }
+
+            if (Number(ticket.quantity) <= 0) {
+               return res.status(400).json({ message: "This ticket is sold out." });
+            }
+
+            const qty = Number(bookingQuantity);
+            if (!qty || qty <= 0) return res.status(400).json({ message: "Invalid booking quantity." });
+            if (qty > Number(ticket.quantity)) {
+               return res.status(400).json({ message: "Booking quantity exceeds available tickets." });
+            }
+
+            const departure = new Date(ticket.departureDateTime);
+            if (departure < new Date()) {
+               return res.status(400).json({ message: "Departure date and time has already passed." });
+            }
+
+            const newBooking = {
+               ticketId: new ObjectId(ticketId),
+               ticketTitle: ticket.title,
+               ticketImage: ticket.image,
+               from: ticket.from,
+               to: ticket.to,
+               transportType: ticket.transportType,
+               departureDateTime: ticket.departureDateTime,
+               unitPrice: Number(ticket.price),
+               bookingQuantity: qty,
+               totalPrice: Number(ticket.price) * qty,
+               userEmail,
+               userName,
+               vendorEmail: ticket.vendorEmail,
+               status: "pending",
+               createdAt: new Date(),
+            };
+
+            const result = await bookingCollection.insertOne(newBooking);
+            res.status(201).json({
+               success: true,
+               message: "Booking request submitted successfully.",
+               bookingId: result.insertedId,
+            });
+         } catch (error) {
+            console.error("Error creating booking:", error);
+            res.status(500).json({ message: "Failed to create booking." });
+         }
+      });
+
 
 
 

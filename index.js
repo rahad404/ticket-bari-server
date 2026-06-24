@@ -379,19 +379,19 @@ async function run() {
          }
       });
 
-       // admin: get ALL tickets (pending, rejected, approved, hidden) for manage-tickets page
-       app.get("/tickets/admin", verifyToken, verifyAdmin, async (req, res) => {
-          try {
-             const tickets = await ticketCollection.find().sort({ createdAt: -1 }).toArray();
-             res.status(200).json(tickets);
-          } catch (error) {
-             console.error("Error fetching all tickets for admin:", error);
-             res.status(500).json({ message: "Failed to fetch tickets." });
-          }
-       });
+      // admin: get ALL tickets (pending, rejected, approved, hidden) for manage-tickets page
+      app.get("/tickets/admin", verifyToken, verifyAdmin, async (req, res) => {
+         try {
+            const tickets = await ticketCollection.find().sort({ createdAt: -1 }).toArray();
+            res.status(200).json(tickets);
+         } catch (error) {
+            console.error("Error fetching all tickets for admin:", error);
+            res.status(500).json({ message: "Failed to fetch tickets." });
+         }
+      });
 
-       // admin: approve / reject a ticket
-       app.patch("/tickets/verify/:id", verifyToken, verifyAdmin, async (req, res) => {
+      // admin: approve / reject a ticket
+      app.patch("/tickets/verify/:id", verifyToken, verifyAdmin, async (req, res) => {
          try {
             const { id } = req.params;
             const { verificationStatus } = req.body;

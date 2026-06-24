@@ -363,6 +363,17 @@ async function run() {
          }
       });
 
+      // admin: get ALL tickets (pending, rejected, approved, hidden) for manage-tickets page
+      app.get("/tickets/admin", verifyToken, verifyAdmin, async (req, res) => {
+         try {
+            const tickets = await ticketCollection.find().sort({ createdAt: -1 }).toArray();
+            res.status(200).json(tickets);
+         } catch (error) {
+            console.error("Error fetching all tickets for admin:", error);
+            res.status(500).json({ message: "Failed to fetch tickets." });
+         }
+      });
+
       // protected: single ticket details (Ticket Details page)
       app.get("/tickets/:id", verifyToken, async (req, res) => {
          try {
@@ -376,17 +387,6 @@ async function run() {
          } catch (error) {
             console.error("Error fetching ticket:", error);
             res.status(500).json({ message: "Failed to fetch ticket details." });
-         }
-      });
-
-      // admin: get ALL tickets (pending, rejected, approved, hidden) for manage-tickets page
-      app.get("/tickets/admin", verifyToken, verifyAdmin, async (req, res) => {
-         try {
-            const tickets = await ticketCollection.find().sort({ createdAt: -1 }).toArray();
-            res.status(200).json(tickets);
-         } catch (error) {
-            console.error("Error fetching all tickets for admin:", error);
-            res.status(500).json({ message: "Failed to fetch tickets." });
          }
       });
 

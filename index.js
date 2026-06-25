@@ -173,7 +173,7 @@ async function run() {
          }
       });
 
-      // mark a vendor as fraud -> hides all of their tickets + blocks future ticket adds
+      // toggle vendor fraud status (mark/unmark) -> hides/shows all their tickets
       app.patch("/users/fraud/:id", verifyToken, verifyAdmin, async (req, res) => {
          try {
             const { id } = req.params;
@@ -185,15 +185,22 @@ async function run() {
                return res.status(400).json({ message: "Only vendors can be marked as fraud." });
             }
 
-            await userCollection.updateOne({ _id: new ObjectId(id) }, { $set: { isFraud: true } });
+            const newFraudStatus = !targetUser.isFraud;
 
-            // hide all tickets belonging to this vendor from public listings
-            await ticketCollection.updateMany({ vendorEmail: targetUser.email }, { $set: { isHidden: true } });
+            await userCollection.updateOne({ _id: new ObjectId(id) }, { $set: { isFraud: newFraudStatus } });
 
-            res.status(200).json({ success: true, message: "Vendor marked as fraud and their tickets are now hidden." });
+            // hide/show all tickets belonging to this vendor from public listings
+            await ticketCollection.updateMany({ vendorEmail: targetUser.email }, { $set: { isHidden: newFraudStatus } });
+
+            res.status(200).json({
+               success: true,
+               message: newFraudStatus
+                  ? "Vendor marked as fraud and their tickets are now hidden."
+                  : "Vendor fraud status removed and their tickets are now visible.",
+            });
          } catch (error) {
-            console.error("Error marking fraud:", error);
-            res.status(500).json({ message: "Failed to mark vendor as fraud." });
+            console.error("Error toggling fraud status:", error);
+            res.status(500).json({ message: "Failed to update vendor fraud status." });
          }
       });
 

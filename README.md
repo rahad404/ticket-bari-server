@@ -5,7 +5,8 @@
 * **Project Name:** TicketBari – Ticket Booking System (Backend)  
 * **Server GitHub Repository:** [https://github.com/rahad404/ticket-bari-server](#)
 * **Client GitHub Repository:** [https://github.com/rahad404/ticket-bari-client](#)
-<!-- * **Client Live Site:** [https://ticketbari-client.vercel.app](#) *(replace with actual URL)*   -->
+* **Client Live Site:** [https://ticket-bari-client-tan.vercel.app/](#)  
+* **Server Live Site:** [https://ticket-bari-server-seven.vercel.app/](#)  
 
 ---
 
@@ -118,5 +119,5 @@ All endpoints are relative to the base URL:
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/your-username/ticketbari-server.git
+git clone https://github.com/your-username/ticket-bari-server.git
 cd ticketbari-server

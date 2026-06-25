@@ -4,7 +4,7 @@ const express = require("express");
 const cors = require("cors");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const { createRemoteJWKSet, jwtVerify } = require("jose-cjs");
-// const Stripe = require("stripe");
+const Stripe = require("stripe");
 
 const app = express();
 
@@ -15,7 +15,7 @@ app.use(express.urlencoded({ extended: false }));
 
 const port = process.env.PORT || 5000;
 const uri = process.env.MONGODB_URI;
-// const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
+const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 
 const client = new MongoClient(uri, {
    serverApi: {
@@ -526,7 +526,7 @@ async function run() {
             const newBooking = {
                ticketId: new ObjectId(ticketId),
                ticketTitle: ticket.title,
-               ticketImage: ticket.image,
+               ticketImage: ticket.imageUrl,
                from: ticket.from,
                to: ticket.to,
                transportType: ticket.transportType,
@@ -655,83 +655,83 @@ async function run() {
       // ===================================================================
 
       // create a Stripe payment intent for an accepted booking
-      // app.post("/create-payment-intent", verifyToken, async (req, res) => {
-      //    try {
-      //       const { bookingId } = req.body;
-      //       if (!ObjectId.isValid(bookingId)) return res.status(400).json({ message: "Invalid Booking ID" });
+      app.post("/create-payment-intent", verifyToken, async (req, res) => {
+         try {
+            const { bookingId } = req.body;
+            if (!ObjectId.isValid(bookingId)) return res.status(400).json({ message: "Invalid Booking ID" });
 
-      //       const booking = await bookingCollection.findOne({ _id: new ObjectId(bookingId) });
-      //       if (!booking) return res.status(404).json({ message: "Booking not found." });
-      //       if (booking.status !== "accepted") {
-      //          return res.status(400).json({ message: "This booking is not approved for payment yet." });
-      //       }
+            const booking = await bookingCollection.findOne({ _id: new ObjectId(bookingId) });
+            if (!booking) return res.status(404).json({ message: "Booking not found." });
+            if (booking.status !== "accepted") {
+               return res.status(400).json({ message: "This booking is not approved for payment yet." });
+            }
 
-      //       const departure = new Date(booking.departureDateTime);
-      //       if (departure < new Date()) {
-      //          return res.status(400).json({ message: "Departure date and time has already passed." });
-      //       }
+            const departure = new Date(booking.departureDateTime);
+            if (departure < new Date()) {
+               return res.status(400).json({ message: "Departure date and time has already passed." });
+            }
 
-      //       const amount = Math.round(Number(booking.totalPrice) * 100); // smallest currency unit
+            const amount = Math.round(Number(booking.totalPrice) * 100); // smallest currency unit
 
-      //       const paymentIntent = await stripe.paymentIntents.create({
-      //          amount,
-      //          currency: "usd", // change as needed for your Stripe account
-      //          payment_method_types: ["card"],
-      //       });
+            const paymentIntent = await stripe.paymentIntents.create({
+               amount,
+               currency: "usd", // change as needed for your Stripe account
+               payment_method_types: ["card"],
+            });
 
-      //       res.status(200).json({ clientSecret: paymentIntent.client_secret });
-      //    } catch (error) {
-      //       console.error("Error creating payment intent:", error);
-      //       res.status(500).json({ message: "Failed to create payment intent." });
-      //    }
-      // });
+            res.status(200).json({ clientSecret: paymentIntent.client_secret });
+         } catch (error) {
+            console.error("Error creating payment intent:", error);
+            res.status(500).json({ message: "Failed to create payment intent." });
+         }
+      });
 
       // save a successful payment, mark booking as paid, reduce ticket quantity
-      // app.post("/payments", verifyToken, async (req, res) => {
-      //    try {
-      //       const { bookingId, transactionId, amount, email } = req.body;
-      //       if (!ObjectId.isValid(bookingId)) return res.status(400).json({ message: "Invalid Booking ID" });
+      app.post("/payments", async (req, res) => {
+         try {
+            const { bookingId, transactionId, amount, email } = req.body;
+            if (!ObjectId.isValid(bookingId)) return res.status(400).json({ message: "Invalid Booking ID" });
 
-      //       const booking = await bookingCollection.findOne({ _id: new ObjectId(bookingId) });
-      //       if (!booking) return res.status(404).json({ message: "Booking not found." });
+            const booking = await bookingCollection.findOne({ _id: new ObjectId(bookingId) });
+            if (!booking) return res.status(404).json({ message: "Booking not found." });
 
-      //       const paymentRecord = {
-      //          transactionId,
-      //          bookingId: new ObjectId(bookingId),
-      //          ticketId: booking.ticketId,
-      //          ticketTitle: booking.ticketTitle,
-      //          amount: Number(amount),
-      //          email,
-      //          paymentDate: new Date(),
-      //       };
+            const paymentRecord = {
+               transactionId,
+               bookingId: new ObjectId(bookingId),
+               ticketId: booking.ticketId,
+               ticketTitle: booking.ticketTitle,
+               amount: Number(amount),
+               email,
+               paymentDate: new Date(),
+            };
 
-      //       await paymentCollection.insertOne(paymentRecord);
+            await paymentCollection.insertOne(paymentRecord);
 
-      //       await bookingCollection.updateOne({ _id: new ObjectId(bookingId) }, { $set: { status: "paid" } });
+            await bookingCollection.updateOne({ _id: new ObjectId(bookingId) }, { $set: { status: "paid" } });
 
-      //       await ticketCollection.updateOne(
-      //          { _id: booking.ticketId },
-      //          { $inc: { quantity: -Number(booking.bookingQuantity) } }
-      //       );
+            await ticketCollection.updateOne(
+               { _id: booking.ticketId },
+               { $inc: { quantity: -Number(booking.bookingQuantity) } }
+            );
 
-      //       res.status(201).json({ success: true, message: "Payment recorded successfully." });
-      //    } catch (error) {
-      //       console.error("Error saving payment:", error);
-      //       res.status(500).json({ message: "Failed to save payment." });
-      //    }
-      // });
+            res.status(201).json({ success: true, message: "Payment recorded successfully." });
+         } catch (error) {
+            console.error("Error saving payment:", error);
+            res.status(500).json({ message: "Failed to save payment." });
+         }
+      });
 
       // user: transaction history table
-      // app.get("/payments/:email", verifyToken, async (req, res) => {
-      //    try {
-      //       const { email } = req.params;
-      //       const payments = await paymentCollection.find({ email }).sort({ paymentDate: -1 }).toArray();
-      //       res.status(200).json(payments);
-      //    } catch (error) {
-      //       console.error("Error fetching payments:", error);
-      //       res.status(500).json({ message: "Failed to fetch transaction history." });
-      //    }
-      // });
+      app.get("/payments/:email", verifyToken, async (req, res) => {
+         try {
+            const { email } = req.params;
+            const payments = await paymentCollection.find({ email }).sort({ paymentDate: -1 }).toArray();
+            res.status(200).json(payments);
+         } catch (error) {
+            console.error("Error fetching payments:", error);
+            res.status(500).json({ message: "Failed to fetch transaction history." });
+         }
+      });
 
       // VENDOR REVENUE OVERVIEW
       // ===================================================================
@@ -742,7 +742,7 @@ async function run() {
 
             const totalTicketsAdded = await ticketCollection.countDocuments({ vendorEmail: email });
 
-            const soldStats = await bookingCollection
+            const paidStats = await bookingCollection
                .aggregate([
                   { $match: { vendorEmail: email, status: "paid" } },
                   {
@@ -755,10 +755,46 @@ async function run() {
                ])
                .toArray();
 
-            const totalTicketsSold = soldStats[0]?.totalTicketsSold || 0;
-            const totalRevenue = soldStats[0]?.totalRevenue || 0;
+            const totalTicketsSold = paidStats[0]?.totalTicketsSold || 0;
+            const totalRevenue = paidStats[0]?.totalRevenue || 0;
 
-            res.status(200).json({ totalTicketsAdded, totalTicketsSold, totalRevenue });
+            const pendingRequests = await bookingCollection.countDocuments({ vendorEmail: email, status: "pending" });
+            const acceptedRequests = await bookingCollection.countDocuments({ vendorEmail: email, status: "accepted" });
+            const rejectedRequests = await bookingCollection.countDocuments({ vendorEmail: email, status: "rejected" });
+
+            // daily revenue for the last 7 days
+            const sevenDaysAgo = new Date();
+            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+            const dailyRevenue = await bookingCollection
+               .aggregate([
+                  {
+                     $match: {
+                        vendorEmail: email,
+                        status: "paid",
+                        createdAt: { $gte: sevenDaysAgo },
+                     },
+                  },
+                  {
+                     $group: {
+                        _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+                        revenue: { $sum: "$totalPrice" },
+                        ticketsSold: { $sum: "$bookingQuantity" },
+                     },
+                  },
+                  { $sort: { _id: 1 } },
+               ])
+               .toArray();
+
+            res.status(200).json({
+               totalTicketsAdded,
+               totalTicketsSold,
+               totalRevenue,
+               pendingRequests,
+               acceptedRequests,
+               rejectedRequests,
+               dailyRevenue,
+            });
          } catch (error) {
             console.error("Error fetching vendor stats:", error);
             res.status(500).json({ message: "Failed to fetch vendor stats." });

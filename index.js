@@ -52,10 +52,14 @@ const verifyToken = async (req, res, next) => {
    }
 };
 
-async function run() {
-   try {
-      await client.connect();
-      console.log("Connected successfully to MongoDB!");
+// async function run() {
+//    try {
+//       await client.connect();
+//       console.log("Connected successfully to MongoDB!");
+
+      client.connect(()=>{
+         console.log("Connected successfully to MongoDB!");
+      }).catch(console.dir)
 
       const db = client.db("ticketbari");
       const userCollection = db.collection("user"); // singular: matches BetterAuth default collection name
@@ -825,13 +829,21 @@ async function run() {
          res.status(500).json({ message: "Something went wrong!" });
       });
 
-      app.listen(port, () => {
-         console.log(`TicketBari server listening on port ${port}`);
-      });
-   } catch (error) {
-      console.error("Database connection failed:", error);
-      process.exit(1);
-   }
-}
+//       app.listen(port, () => {
+//          console.log(`TicketBari server listening on port ${port}`);
+//       });
+//    } catch (error) {
+//       console.error("Database connection failed:", error);
+//       process.exit(1);
+//    }
+// }
 
-run().catch(console.dir);
+// run().catch(console.dir);
+
+module.exports = app; // for testing / Vercel
+
+if (require.main === module) {
+   app.listen(port, () => {
+      console.log(`TicketBari server listening on port ${port}`);
+   });
+}
